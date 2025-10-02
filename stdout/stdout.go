@@ -20,14 +20,15 @@ import (
 // UI struct
 type UI struct {
 	*common.UI
-	output      io.Writer
-	red         *color.Color
-	orange      *color.Color
-	blue        *color.Color
-	summarize   bool
-	noPrefix    bool
-	top         int
-	reverseSort bool
+	output         io.Writer
+	red            *color.Color
+	orange         *color.Color
+	blue           *color.Color
+	summarize      bool
+	noPrefix       bool
+	top            int
+	reverseSort    bool
+	showCacheStats bool
 }
 
 var (
@@ -49,6 +50,7 @@ func CreateStdoutUI(
 	noPrefix bool,
 	top int,
 	reverseSort bool,
+	showCacheStats bool,
 ) *UI {
 	ui := &UI{
 		UI: &common.UI{
@@ -60,11 +62,12 @@ func CreateStdoutUI(
 			ConstGC:          constGC,
 			UseSIPrefix:      useSIPrefix,
 		},
-		output:      output,
-		summarize:   summarize,
-		noPrefix:    noPrefix,
-		top:         top,
-		reverseSort: reverseSort,
+		output:         output,
+		summarize:      summarize,
+		noPrefix:       noPrefix,
+		top:            top,
+		reverseSort:    reverseSort,
+		showCacheStats: showCacheStats,
 	}
 
 	ui.red = color.New(color.FgRed).Add(color.Bold)
@@ -186,6 +189,13 @@ func (ui *UI) AnalyzePath(path string, _ fs.Item) error {
 		ui.printTotalItem(dir)
 	default:
 		ui.showDir(dir)
+	}
+
+	// Display cache statistics if requested and analyzer supports it
+	if ui.showCacheStats {
+		if incrementalAnalyzer, ok := ui.Analyzer.(*analyze.IncrementalAnalyzer); ok {
+			ui.printCacheStats(incrementalAnalyzer.GetCacheStats())
+		}
 	}
 
 	return nil
@@ -504,4 +514,38 @@ func maxInt(x, y int) int {
 		return x
 	}
 	return y
+}
+
+// printCacheStats prints cache statistics to output
+func (ui *UI) printCacheStats(stats *analyze.CacheStats) {
+	if stats == nil {
+		return
+	}
+
+	fmt.Fprintln(ui.output)
+	fmt.Fprintln(ui.output, "Cache Statistics:")
+
+	// Calculate hit rate (already returns percentage)
+	hitRate := stats.HitRate()
+	fmt.Fprintf(ui.output, "  Hit Rate:         %.1f%% (%d hits, %d misses)\n",
+		hitRate, stats.CacheHits, stats.CacheMisses)
+
+	// Calculate I/O reduction (already returns percentage)
+	ioReduction := stats.IOReduction()
+	fmt.Fprintf(ui.output, "  I/O Reduction:    %.1f%%\n", ioReduction)
+
+	// Directory stats
+	fmt.Fprintf(ui.output, "  Directories:      %d total, %d rescanned\n",
+		stats.TotalDirs, stats.DirsRescanned)
+
+	// Performance stats
+	if stats.TotalScanTime > 0 {
+		fmt.Fprintf(ui.output, "  Scan Time:        %v\n", stats.TotalScanTime)
+	}
+
+	// Bytes stats
+	if stats.BytesScanned > 0 || stats.BytesFromCache > 0 {
+		fmt.Fprintf(ui.output, "  Bytes Scanned:    %s\n", ui.formatSize(stats.BytesScanned))
+		fmt.Fprintf(ui.output, "  Bytes From Cache: %s\n", ui.formatSize(stats.BytesFromCache))
+	}
 }

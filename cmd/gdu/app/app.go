@@ -319,6 +319,7 @@ func (a *App) createUI() (UI, error) {
 			a.Flags.NoPrefix,
 			a.Flags.Top,
 			a.Flags.ReverseSort,
+			a.Flags.ShowCacheStats,
 		)
 		if a.Flags.NoUnicode {
 			stdoutUI.UseOldProgressRunes()
