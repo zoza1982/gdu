@@ -2,6 +2,7 @@ package analyze
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -109,10 +110,22 @@ func (a *IncrementalAnalyzer) AnalyzeDir(
 	a.stats.ScanStartTime = startTime
 
 	a.storage = NewIncrementalStorage(a.storagePath, path)
-	closeFn := a.storage.Open()
+	closeFn, err := a.storage.Open()
+	if err != nil {
+		// Return a descriptive error directory instead of nil
+		errMsg := fmt.Sprintf("Failed to initialize incremental cache at %s: %v", a.storagePath, err)
+		log.Error(errMsg)
+		return &Dir{
+			File: &File{
+				Name: filepath.Base(path),
+				Flag: '!',
+			},
+			BasePath:  filepath.Dir(path),
+			ItemCount: 0,
+			Files:     make(fs.Files, 0),
+		}
+	}
 	defer func() {
-		// Wait for all goroutines to complete before closing storage
-		time.Sleep(1 * time.Second)
 		closeFn()
 	}()
 

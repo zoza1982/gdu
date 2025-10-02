@@ -167,11 +167,17 @@ func (ui *UI) AnalyzePath(path string, _ fs.Item) error {
 	go func() {
 		defer wait.Done()
 		dir = ui.Analyzer.AnalyzeDir(path, ui.CreateIgnoreFunc(), ui.ConstGC)
-		dir.UpdateStats(make(fs.HardLinkedItems, 10))
+		if dir != nil {
+			dir.UpdateStats(make(fs.HardLinkedItems, 10))
+		}
 		updateStatsDone <- struct{}{}
 	}()
 
 	wait.Wait()
+
+	if dir == nil {
+		return fmt.Errorf("analysis failed")
+	}
 
 	switch {
 	case ui.top > 0:
