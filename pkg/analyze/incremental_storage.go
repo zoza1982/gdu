@@ -71,19 +71,19 @@ func (s *IncrementalStorage) IsOpen() bool {
 }
 
 // Open opens the BadgerDB database
-func (s *IncrementalStorage) Open() func() {
+func (s *IncrementalStorage) Open() (func(), error) {
 	options := badger.DefaultOptions(s.storagePath)
 	options.Logger = nil
 	db, err := badger.Open(options)
 	if err != nil {
-		panic(errors.Wrap(err, "failed to open incremental cache database"))
+		return nil, errors.Wrap(err, "failed to open incremental cache database")
 	}
 	s.db = db
 
 	return func() {
 		s.db.Close()
 		s.db = nil
-	}
+	}, nil
 }
 
 // StoreDirMetadata stores directory metadata in cache
