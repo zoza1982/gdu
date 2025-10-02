@@ -13,7 +13,10 @@ func TestIncrementalStorage_StoreLoad(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Create test metadata
@@ -49,7 +52,7 @@ func TestIncrementalStorage_StoreLoad(t *testing.T) {
 	}
 
 	// Store metadata
-	err := storage.StoreDirMetadata(meta)
+	err = storage.StoreDirMetadata(meta)
 	assert.NoError(t, err, "Should store metadata without error")
 
 	// Load metadata
@@ -78,7 +81,10 @@ func TestIncrementalStorage_LoadNonExistent(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Try to load non-existent path
@@ -92,7 +98,10 @@ func TestIncrementalStorage_DeleteMetadata(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Store metadata
@@ -107,7 +116,7 @@ func TestIncrementalStorage_DeleteMetadata(t *testing.T) {
 		CachedAt:  time.Now(),
 	}
 
-	err := storage.StoreDirMetadata(meta)
+	err = storage.StoreDirMetadata(meta)
 	assert.NoError(t, err)
 
 	// Verify it exists
@@ -130,7 +139,10 @@ func TestIncrementalStorage_OverwriteMetadata(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	path := "/test/path/update"
@@ -146,7 +158,7 @@ func TestIncrementalStorage_OverwriteMetadata(t *testing.T) {
 		Files:     []FileMetadata{},
 		CachedAt:  time.Now(),
 	}
-	err := storage.StoreDirMetadata(meta1)
+	err = storage.StoreDirMetadata(meta1)
 	assert.NoError(t, err)
 
 	// Update with new metadata
@@ -175,7 +187,10 @@ func TestIncrementalStorage_MultipleEntries(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Store multiple entries
@@ -196,7 +211,7 @@ func TestIncrementalStorage_MultipleEntries(t *testing.T) {
 			Files:     []FileMetadata{},
 			CachedAt:  time.Now(),
 		}
-		err := storage.StoreDirMetadata(meta)
+		err = storage.StoreDirMetadata(meta)
 		assert.NoError(t, err)
 	}
 
@@ -218,7 +233,8 @@ func TestIncrementalStorage_IsOpen(t *testing.T) {
 	assert.False(t, storage.IsOpen(), "Should not be open initially")
 
 	// Open and verify
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	assert.NoError(t, err, "Should open without error")
 	assert.True(t, storage.IsOpen(), "Should be open after Open()")
 
 	// Close and verify
@@ -237,7 +253,10 @@ func TestIncrementalStorage_ClearCache(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Store some data
@@ -251,7 +270,7 @@ func TestIncrementalStorage_ClearCache(t *testing.T) {
 		Files:     []FileMetadata{},
 		CachedAt:  time.Now(),
 	}
-	err := storage.StoreDirMetadata(meta)
+	err = storage.StoreDirMetadata(meta)
 	assert.NoError(t, err)
 
 	// Verify it exists
@@ -272,7 +291,10 @@ func TestIncrementalStorage_GetCacheSize(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Get initial size
@@ -305,7 +327,10 @@ func TestIncrementalStorage_LargeMetadata(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Create large file list
@@ -334,7 +359,7 @@ func TestIncrementalStorage_LargeMetadata(t *testing.T) {
 	}
 
 	// Store large metadata
-	err := storage.StoreDirMetadata(meta)
+	err = storage.StoreDirMetadata(meta)
 	assert.NoError(t, err)
 
 	// Load and verify
@@ -349,7 +374,10 @@ func TestIncrementalStorage_SpecialCharactersInPath(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Paths with special characters
@@ -372,7 +400,7 @@ func TestIncrementalStorage_SpecialCharactersInPath(t *testing.T) {
 			CachedAt:  time.Now(),
 		}
 
-		err := storage.StoreDirMetadata(meta)
+		err = storage.StoreDirMetadata(meta)
 		assert.NoError(t, err, "Should handle path: "+path)
 
 		loaded, err := storage.LoadDirMetadata(path)
@@ -386,7 +414,10 @@ func TestIncrementalStorage_ConcurrentAccess(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Concurrent writes
@@ -403,7 +434,7 @@ func TestIncrementalStorage_ConcurrentAccess(t *testing.T) {
 				Files:     []FileMetadata{},
 				CachedAt:  time.Now(),
 			}
-			err := storage.StoreDirMetadata(meta)
+			err = storage.StoreDirMetadata(meta)
 			assert.NoError(t, err)
 			done <- true
 		}(i)
@@ -435,7 +466,10 @@ func TestIncrementalStorage_GobEncoding(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Create metadata with various types
@@ -451,7 +485,7 @@ func TestIncrementalStorage_GobEncoding(t *testing.T) {
 		ScanDuration: 5 * time.Second,
 	}
 
-	err := storage.StoreDirMetadata(meta)
+	err = storage.StoreDirMetadata(meta)
 	assert.NoError(t, err)
 
 	loaded, err := storage.LoadDirMetadata("/test/path/encoding")
@@ -472,7 +506,8 @@ func TestIncrementalStorage_ReopenDatabase(t *testing.T) {
 	storage1 := NewIncrementalStorage(tmpDir, "/test/path")
 
 	// First session
-	closeFn1 := storage1.Open()
+	closeFn1, err := storage1.Open()
+	assert.NoError(t, err)
 	meta := &IncrementalDirMetadata{
 		Path:      "/test/path/persist",
 		Mtime:     time.Now(),
@@ -483,13 +518,14 @@ func TestIncrementalStorage_ReopenDatabase(t *testing.T) {
 		Files:     []FileMetadata{},
 		CachedAt:  time.Now(),
 	}
-	err := storage1.StoreDirMetadata(meta)
+	err = storage1.StoreDirMetadata(meta)
 	assert.NoError(t, err)
 	closeFn1()
 
 	// Second session (new storage instance, same path)
 	storage2 := NewIncrementalStorage(tmpDir, "/test/path")
-	closeFn2 := storage2.Open()
+	closeFn2, err := storage2.Open()
+	assert.NoError(t, err)
 	defer closeFn2()
 
 	// Verify data persisted
@@ -505,13 +541,15 @@ func TestIncrementalStorage_CorruptedData(t *testing.T) {
 
 	// Create and close storage normally
 	storage1 := NewIncrementalStorage(tmpDir, "/test/path")
-	closeFn1 := storage1.Open()
+	closeFn1, err := storage1.Open()
+	assert.NoError(t, err)
 	closeFn1()
 
 	// Corrupt a file in the BadgerDB directory (if possible)
 	// This is tricky to do reliably, so we'll just verify opening doesn't panic
 	storage2 := NewIncrementalStorage(tmpDir, "/test/path")
-	closeFn2 := storage2.Open()
+	closeFn2, err := storage2.Open()
+	assert.NoError(t, err)
 	defer closeFn2()
 
 	// Verify database still works
@@ -523,7 +561,10 @@ func TestIncrementalStorage_EmptyFilesList(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	meta := &IncrementalDirMetadata{
@@ -537,7 +578,7 @@ func TestIncrementalStorage_EmptyFilesList(t *testing.T) {
 		CachedAt:  time.Now(),
 	}
 
-	err := storage.StoreDirMetadata(meta)
+	err = storage.StoreDirMetadata(meta)
 	assert.NoError(t, err)
 
 	loaded, err := storage.LoadDirMetadata("/test/path/empty")
@@ -551,7 +592,10 @@ func TestIncrementalStorage_NilFilesList(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	meta := &IncrementalDirMetadata{
@@ -565,7 +609,7 @@ func TestIncrementalStorage_NilFilesList(t *testing.T) {
 		CachedAt:  time.Now(),
 	}
 
-	err := storage.StoreDirMetadata(meta)
+	err = storage.StoreDirMetadata(meta)
 	assert.NoError(t, err)
 
 	loaded, err := storage.LoadDirMetadata("/test/path/nil")
@@ -594,7 +638,10 @@ func TestIncrementalStorage_CheckCountGC(t *testing.T) {
 	tmpDir := t.TempDir()
 	storage := NewIncrementalStorage(tmpDir, "/test/path")
 
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Trigger checkCount multiple times
@@ -609,7 +656,7 @@ func TestIncrementalStorage_CheckCountGC(t *testing.T) {
 			Files:     []FileMetadata{},
 			CachedAt:  time.Now(),
 		}
-		err := storage.StoreDirMetadata(meta)
+		err = storage.StoreDirMetadata(meta)
 		assert.NoError(t, err)
 	}
 
@@ -627,13 +674,16 @@ func TestIncrementalStorage_NonExistentDirectory(t *testing.T) {
 	storage := NewIncrementalStorage(storagePath, "/test/path")
 
 	// BadgerDB should create the directory
-	closeFn := storage.Open()
+	closeFn, err := storage.Open()
+	if err != nil {
+		t.Fatalf("Failed to open storage: %v", err)
+	}
 	defer closeFn()
 
 	// Verify it works
 	assert.True(t, storage.IsOpen())
 
 	// Verify directory was created
-	_, err := os.Stat(storagePath)
-	assert.NoError(t, err, "BadgerDB should create storage directory")
+	_, statErr := os.Stat(storagePath)
+	assert.NoError(t, statErr, "BadgerDB should create storage directory")
 }
