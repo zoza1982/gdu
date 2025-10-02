@@ -380,21 +380,19 @@ func (a *IncrementalAnalyzer) rebuildFromCache(cached *IncrementalDirMetadata) *
 
 // updateProgress sends progress updates to the progress channel
 func (a *IncrementalAnalyzer) updateProgress() {
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
 	for {
 		select {
 		case <-a.progressDoneChan:
 			return
 		case progress := <-a.progressChan:
-			a.progressOutChan <- progress
-		case <-ticker.C:
-			a.progress.CurrentItemName = ""
-			select {
-			case a.progressOutChan <- *a.progress:
-			default:
-			}
+			a.progress.CurrentItemName = progress.CurrentItemName
+			a.progress.ItemCount += progress.ItemCount
+			a.progress.TotalSize += progress.TotalSize
+		}
+
+		select {
+		case a.progressOutChan <- *a.progress:
+		default:
 		}
 	}
 }
