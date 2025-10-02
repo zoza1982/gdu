@@ -212,8 +212,8 @@ If resources are limited, a **single experienced Go engineer** can complete the 
 | 1.4 | Implement BadgerDB storage operations | 1.0 | PM (AI Agent) | Complete | 2025-10-02 | ✅ Store/Load/Delete operations implemented |
 | 1.5 | Implement cache loading and validation | 1.0 | PM (AI Agent) | Complete | 2025-10-02 | ✅ Age and mtime validation integrated |
 | 1.6 | Implement `rebuildFromCache()` | 0.5 | PM (AI Agent) | Complete | 2025-10-02 | ✅ Recursive cache reconstruction |
-| 1.7 | Add CLI flags (`--incremental`, `--cache-max-age`, etc.) | 0.5 | PM (AI Agent) | In Progress | - | Next task |
-| 1.8 | Write unit tests for core functionality | 1.0 | PM (AI Agent) | Not Started | - | Pending |
+| 1.7 | Add CLI flags (`--incremental`, `--cache-max-age`, etc.) | 0.5 | PM (AI Agent) | Complete | 2025-10-02 | ✅ 5 flags added with YAML support |
+| 1.8 | Write unit tests for core functionality | 1.0 | PM (AI Agent) | In Progress | - | Next task |
 | 1.9 | Manual testing with sample directories | 0.5 | PM (AI Agent) | Not Started | - | Pending |
 
 **Total Estimated Effort**: 6.5 days
