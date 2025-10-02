@@ -76,6 +76,8 @@ func init() {
 	flags.DurationVar(&af.CacheMaxAge, "cache-max-age", 0, "Maximum age of cache entries before refresh (e.g., 24h, 7d). 0 means no expiry")
 	flags.BoolVar(&af.ForceFullScan, "force-full-scan", false, "Ignore cache and perform full scan (updates cache)")
 	flags.BoolVar(&af.ShowCacheStats, "show-cache-stats", false, "Display cache statistics after scan")
+	flags.IntVar(&af.MaxIOPS, "max-iops", 0, "Limit I/O operations per second to protect shared storage (0 = unlimited)")
+	flags.DurationVar(&af.IODelay, "io-delay", 0, "Add fixed delay between directory scans (e.g., 10ms, 100ms)")
 
 	flags.BoolVarP(&af.ShowDisks, "show-disks", "d", false, "Show all mounted disks")
 	flags.BoolVarP(&af.ShowApparentSize, "show-apparent-size", "a", false, "Show apparent size")

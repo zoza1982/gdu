@@ -1,6 +1,7 @@
 package analyze
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -17,6 +18,7 @@ type IncrementalAnalyzer struct {
 	storagePath      string
 	cacheMaxAge      time.Duration
 	forceFullScan    bool
+	throttle         *IOThrottle // I/O rate limiting to protect shared storage
 	stats            *CacheStats
 	progress         *common.CurrentProgress
 	progressChan     chan common.CurrentProgress
@@ -34,6 +36,8 @@ type IncrementalOptions struct {
 	StoragePath   string
 	CacheMaxAge   time.Duration
 	ForceFullScan bool
+	MaxIOPS       int           // Maximum I/O operations per second (0 = unlimited)
+	IODelay       time.Duration // Fixed delay between directory scans (0 = no delay)
 }
 
 // CreateIncrementalAnalyzer returns a new IncrementalAnalyzer instance
@@ -42,6 +46,7 @@ func CreateIncrementalAnalyzer(opts IncrementalOptions) *IncrementalAnalyzer {
 		storagePath:   opts.StoragePath,
 		cacheMaxAge:   opts.CacheMaxAge,
 		forceFullScan: opts.ForceFullScan,
+		throttle:      NewIOThrottle(opts.MaxIOPS, opts.IODelay),
 		stats:         NewCacheStats(),
 		progress: &common.CurrentProgress{
 			ItemCount: 0,
@@ -231,6 +236,14 @@ func (a *IncrementalAnalyzer) performFullScan(path string) *Dir {
 
 	a.wait.Add(1)
 	defer a.wait.Done()
+
+	// Apply I/O throttling before directory read (if enabled)
+	if a.throttle != nil {
+		if err := a.throttle.Acquire(context.Background()); err != nil {
+			// This should only happen on context cancellation, which we don't use yet
+			log.Printf("Throttle error for %s: %v", path, err)
+		}
+	}
 
 	files, err := os.ReadDir(path)
 	if err != nil {
