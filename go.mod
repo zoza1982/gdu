@@ -1,6 +1,6 @@
 module github.com/dundee/gdu/v5
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/dgraph-io/badger/v3 v3.2103.2
@@ -47,4 +47,5 @@ require (
 	go.opencensus.io v0.22.5 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/time v0.13.0 // indirect
 )
