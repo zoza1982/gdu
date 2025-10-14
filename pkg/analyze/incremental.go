@@ -115,6 +115,7 @@ func (a *IncrementalAnalyzer) AnalyzeDir(
 		// Return a descriptive error directory instead of nil
 		errMsg := fmt.Sprintf("Failed to initialize incremental cache at %s: %v", a.storagePath, err)
 		log.Error(errMsg)
+		fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
 		return &Dir{
 			File: &File{
 				Name: filepath.Base(path),
@@ -244,6 +245,8 @@ func (a *IncrementalAnalyzer) performFullScan(path string) *Dir {
 		file      *File
 		err       error
 		totalSize int64
+		totalUsage int64
+		itemCount int
 		info      os.FileInfo
 	)
 
@@ -276,6 +279,10 @@ func (a *IncrementalAnalyzer) performFullScan(path string) *Dir {
 
 	setDirPlatformSpecificAttrs(dir, path)
 
+	// Start with directory overhead (4096 bytes is typical)
+	totalSize = 4096
+	totalUsage = 4096
+
 	for _, f := range files {
 		name := f.Name()
 		entryPath := filepath.Join(path, name)
@@ -290,6 +297,10 @@ func (a *IncrementalAnalyzer) performFullScan(path string) *Dir {
 			if subdir != nil {
 				subdir.Parent = parent
 				dir.AddFile(subdir)
+				// Accumulate size from subdirectory
+				totalSize += subdir.Size
+				totalUsage += subdir.Usage
+				itemCount += subdir.ItemCount
 			}
 		} else {
 			info, err = f.Info()
@@ -318,9 +329,16 @@ func (a *IncrementalAnalyzer) performFullScan(path string) *Dir {
 			}
 
 			totalSize += file.Size
+			totalUsage += file.Usage
+			itemCount++
 			dir.AddFile(file)
 		}
 	}
+
+	// Set the accumulated totals on the directory
+	dir.Size = totalSize
+	dir.Usage = totalUsage
+	dir.ItemCount = itemCount + 1 // +1 for the directory itself
 
 	// Update progress
 	a.progressChan <- common.CurrentProgress{
