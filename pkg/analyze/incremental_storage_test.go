@@ -434,7 +434,7 @@ func TestIncrementalStorage_ConcurrentAccess(t *testing.T) {
 				Files:     []FileMetadata{},
 				CachedAt:  time.Now(),
 			}
-			err = storage.StoreDirMetadata(meta)
+			err := storage.StoreDirMetadata(meta)
 			assert.NoError(t, err)
 			done <- true
 		}(i)
