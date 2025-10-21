@@ -16,7 +16,6 @@ import (
 // StoredAnalyzer implements Analyzer
 type StoredAnalyzer struct {
 	storage          *Storage
-	storagePath      string
 	progress         *common.CurrentProgress
 	progressChan     chan common.CurrentProgress
 	progressOutChan  chan common.CurrentProgress
@@ -24,6 +23,7 @@ type StoredAnalyzer struct {
 	doneChan         common.SignalGroup
 	wait             *WaitGroup
 	ignoreDir        common.ShouldDirBeIgnored
+	storagePath      string
 	followSymlinks   bool
 	gitAnnexedSize   bool
 }
@@ -186,13 +186,13 @@ func (a *StoredAnalyzer) processDir(path string) *StoredDir {
 		log.Print(err.Error())
 	}
 
-	a.wait.Done()
-
 	a.progressChan <- common.CurrentProgress{
 		CurrentItemName: path,
 		ItemCount:       len(files),
 		TotalSize:       totalSize,
 	}
+
+	a.wait.Done()
 	return dir
 }
 

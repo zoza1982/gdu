@@ -44,14 +44,18 @@ type UI interface {
 
 // Flags define flags accepted by Run
 type Flags struct {
+	Style              Style    `yaml:"style"`
+	Sorting            Sorting  `yaml:"sorting"`
 	CfgFile            string   `yaml:"-"`
 	LogFile            string   `yaml:"log-file"`
 	InputFile          string   `yaml:"input-file"`
 	OutputFile         string   `yaml:"output-file"`
+	IgnoreFromFile     string   `yaml:"ignore-from-file"`
+	StoragePath        string   `yaml:"storage-path"`
 	IgnoreDirs         []string `yaml:"ignore-dirs"`
 	IgnoreDirPatterns  []string `yaml:"ignore-dir-patterns"`
-	IgnoreFromFile     string   `yaml:"ignore-from-file"`
 	MaxCores           int      `yaml:"max-cores"`
+	Top                int      `yaml:"top"`
 	SequentialScanning bool     `yaml:"sequential-scanning"`
 	ShowDisks          bool     `yaml:"-"`
 	ShowApparentSize   bool     `yaml:"show-apparent-size"`
@@ -68,6 +72,7 @@ type Flags struct {
 	NoCross            bool     `yaml:"no-cross"`
 	NoHidden           bool     `yaml:"no-hidden"`
 	NoDelete           bool     `yaml:"no-delete"`
+	NoSpawnShell       bool     `yaml:"no-spawn-shell"`
 	FollowSymlinks     bool     `yaml:"follow-symlinks"`
 	Profiling          bool     `yaml:"profiling"`
 	ConstGC            bool          `yaml:"const-gc"`
@@ -82,7 +87,6 @@ type Flags struct {
 	MaxIOPS            int           `yaml:"max-iops"`
 	IODelay            time.Duration `yaml:"io-delay"`
 	Summarize          bool          `yaml:"summarize"`
-	Top                int      `yaml:"top"`
 	UseSIPrefix        bool     `yaml:"use-si-prefix"`
 	NoPrefix           bool     `yaml:"no-prefix"`
 	WriteConfig        bool     `yaml:"-"`
@@ -90,8 +94,6 @@ type Flags struct {
 	ChangeCwd          bool     `yaml:"change-cwd"`
 	DeleteInBackground bool     `yaml:"delete-in-background"`
 	DeleteInParallel   bool     `yaml:"delete-in-parallel"`
-	Style              Style    `yaml:"style"`
-	Sorting            Sorting  `yaml:"sorting"`
 }
 
 // ShouldRunInNonInteractiveMode checks if the application should run in non-interactive mode
@@ -109,12 +111,12 @@ func (f *Flags) ShouldRunInNonInteractiveMode(istty bool) bool {
 
 // Style define style config
 type Style struct {
+	Footer        FooterColorStyle    `yaml:"footer"`
 	SelectedRow   ColorStyle          `yaml:"selected-row"`
+	ResultRow     ResultRowColorStyle `yaml:"result-row"`
+	Header        HeaderColorStyle    `yaml:"header"`
 	ProgressModal ProgressModalOpts   `yaml:"progress-modal"`
 	UseOldSizeBar bool                `yaml:"use-old-size-bar"`
-	Footer        FooterColorStyle    `yaml:"footer"`
-	Header        HeaderColorStyle    `yaml:"header"`
-	ResultRow     ResultRowColorStyle `yaml:"result-row"`
 }
 
 // ProgressModalOpts defines options for progress modal
@@ -156,14 +158,14 @@ type Sorting struct {
 
 // App defines the main application
 type App struct {
-	Args        []string
-	Flags       *Flags
-	Istty       bool
 	Writer      io.Writer
 	TermApp     common.TermApplication
 	Screen      tcell.Screen
 	Getter      device.DevicesInfoGetter
+	Flags       *Flags
 	PathChecker func(string) (fs.FileInfo, error)
+	Args        []string
+	Istty       bool
 }
 
 func init() {
@@ -437,6 +439,11 @@ func (a *App) getOptions() []tui.Option {
 	if a.Flags.NoDelete {
 		opts = append(opts, func(ui *tui.UI) {
 			ui.SetNoDelete()
+		})
+	}
+	if a.Flags.NoSpawnShell {
+		opts = append(opts, func(ui *tui.UI) {
+			ui.SetNoSpawnShell()
 		})
 	}
 	if a.Flags.DeleteInBackground {
