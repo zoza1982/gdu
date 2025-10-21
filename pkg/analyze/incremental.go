@@ -13,6 +13,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	// DefaultDirBlockSize is the typical directory block size on most filesystems.
+	// This is used as a fallback when the actual directory size cannot be determined.
+	// Actual sizes vary by filesystem (ext4, XFS, NFS, etc.) and can range from
+	// 512 bytes to 64KB or more depending on the filesystem configuration.
+	DefaultDirBlockSize = 4096
+)
+
 // IncrementalAnalyzer implements Analyzer with incremental caching based on mtime
 type IncrementalAnalyzer struct {
 	storage          *IncrementalStorage
@@ -109,13 +117,44 @@ func (a *IncrementalAnalyzer) AnalyzeDir(
 	startTime := time.Now()
 	a.stats.ScanStartTime = startTime
 
+	// Start progress updates early to prevent hanging if there's an error
+	go a.updateProgress()
+
 	a.storage = NewIncrementalStorage(a.storagePath, path)
 	closeFn, err := a.storage.Open()
 	if err != nil {
 		// Return a descriptive error directory instead of nil
-		errMsg := fmt.Sprintf("Failed to initialize incremental cache at %s: %v", a.storagePath, err)
+		errMsg := fmt.Sprintf(`Failed to initialize incremental cache at %s: %v
+
+Possible causes and solutions:
+  1. Directory doesn't exist
+     → Create it with: mkdir -p %s
+
+  2. Permission denied
+     → Check directory permissions: ls -ld %s
+     → Ensure you have write access: chmod u+w %s
+
+  3. Disk full
+     → Check disk space: df -h
+     → Free up space or use a different location
+
+  4. Invalid path or filesystem issues
+     → Verify the path is correct and accessible
+     → Check if the filesystem is mounted and writable
+
+To specify a different cache location, use:
+  --incremental-path /path/to/cache
+
+For more help, see: https://github.com/dundee/gdu#incremental-caching
+`, a.storagePath, err, a.storagePath, a.storagePath, a.storagePath)
+
 		log.Error(errMsg)
-		fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
+		fmt.Fprintf(os.Stderr, "%s\n", errMsg)
+
+		// Signal completion even on error to prevent hanging
+		a.progressDoneChan <- struct{}{}
+		a.doneChan.Broadcast()
+
 		return &Dir{
 			File: &File{
 				Name: filepath.Base(path),
@@ -132,7 +171,6 @@ func (a *IncrementalAnalyzer) AnalyzeDir(
 
 	a.ignoreDir = ignore
 
-	go a.updateProgress()
 	dir := a.processDir(path)
 
 	a.wait.Wait()
@@ -176,6 +214,7 @@ func (a *IncrementalAnalyzer) processDir(path string) *Dir {
 		age := time.Since(cached.CachedAt)
 		if age > a.cacheMaxAge {
 			a.stats.IncrementCacheExpired()
+			a.stats.IncrementDirsRescanned() // Expired cache requires rescan
 			a.stats.IncrementTotalDirs()
 			return a.scanAndCache(path, currentMtime)
 		}
@@ -198,6 +237,13 @@ func (a *IncrementalAnalyzer) processDir(path string) *Dir {
 
 // createErrorDir creates a directory entry for errors
 func (a *IncrementalAnalyzer) createErrorDir(path string, err error) *Dir {
+	// Send progress update to prevent hanging
+	a.progressChan <- common.CurrentProgress{
+		CurrentItemName: path,
+		ItemCount:       0,
+		TotalSize:       0,
+	}
+
 	return &Dir{
 		File: &File{
 			Name: filepath.Base(path),
@@ -279,9 +325,21 @@ func (a *IncrementalAnalyzer) performFullScan(path string) *Dir {
 
 	setDirPlatformSpecificAttrs(dir, path)
 
-	// Start with directory overhead (4096 bytes is typical)
-	totalSize = 4096
-	totalUsage = 4096
+	// Get actual directory size from filesystem
+	dirInfo, statErr := os.Stat(path)
+	if statErr == nil {
+		totalSize = dirInfo.Size()
+		// Try to get actual usage from platform-specific attributes
+		// This will be set by setPlatformSpecificAttrs if available
+		setPlatformSpecificAttrs(&File{}, dirInfo)
+		// For directories, we use Size() as it reflects the directory metadata size
+		totalUsage = totalSize
+	} else {
+		// Fallback to conservative estimate if stat fails
+		log.Printf("Warning: Could not stat directory %s, using default size: %v", path, statErr)
+		totalSize = DefaultDirBlockSize
+		totalUsage = DefaultDirBlockSize
+	}
 
 	for _, f := range files {
 		name := f.Name()
@@ -380,6 +438,8 @@ func (a *IncrementalAnalyzer) extractFileMetadata(dir *Dir) []FileMetadata {
 
 // rebuildFromCache reconstructs a Dir from cached metadata
 func (a *IncrementalAnalyzer) rebuildFromCache(cached *IncrementalDirMetadata) *Dir {
+	log.Printf("Rebuilding from cache: %s (children: %d)", cached.Path, len(cached.Files))
+
 	dir := &Dir{
 		File: &File{
 			Name:  filepath.Base(cached.Path),
@@ -397,9 +457,25 @@ func (a *IncrementalAnalyzer) rebuildFromCache(cached *IncrementalDirMetadata) *
 	// Reconstruct child items from cached metadata
 	for _, fileMeta := range cached.Files {
 		if fileMeta.IsDir {
-			// For subdirectories, recursively check cache
+			// FIX: Load child from cache directly, don't call processDir()
+			// This prevents loading the entire tree twice into memory
 			childPath := filepath.Join(cached.Path, fileMeta.Name)
-			childDir := a.processDir(childPath)
+			childCached, err := a.storage.LoadDirMetadata(childPath)
+			if err != nil {
+				// Child cache miss shouldn't happen in normal operation
+				// Fall back to processDir() only as last resort
+				log.Printf("Warning: Child cache miss for %s: %v", childPath, err)
+				childDir := a.processDir(childPath)
+				if childDir != nil {
+					childDir.Parent = parent
+					dir.AddFile(childDir)
+				}
+				continue
+			}
+
+			// Recursively rebuild child from its cache entry
+			// Note: Statistics are tracked in processDir(), not here to avoid double-counting
+			childDir := a.rebuildFromCache(childCached)
 			if childDir != nil {
 				childDir.Parent = parent
 				dir.AddFile(childDir)
@@ -419,10 +495,19 @@ func (a *IncrementalAnalyzer) rebuildFromCache(cached *IncrementalDirMetadata) *
 		}
 	}
 
+	// Send progress update (similar to performFullScan)
+	a.progressChan <- common.CurrentProgress{
+		CurrentItemName: cached.Path,
+		ItemCount:       len(cached.Files),
+		TotalSize:       cached.Size,
+	}
+
 	return dir
 }
 
 // updateProgress sends progress updates to the progress channel
+// This goroutine ensures proper cleanup by checking the done signal
+// in both select statements to prevent goroutine leaks
 func (a *IncrementalAnalyzer) updateProgress() {
 	for {
 		select {
@@ -432,11 +517,15 @@ func (a *IncrementalAnalyzer) updateProgress() {
 			a.progress.CurrentItemName = progress.CurrentItemName
 			a.progress.ItemCount += progress.ItemCount
 			a.progress.TotalSize += progress.TotalSize
-		}
 
-		select {
-		case a.progressOutChan <- *a.progress:
-		default:
+			// Check done signal again before sending to avoid blocking on a closed channel
+			select {
+			case a.progressOutChan <- *a.progress:
+			case <-a.progressDoneChan:
+				return
+			default:
+				// Progress update dropped (non-blocking, acceptable for UI updates)
+			}
 		}
 	}
 }
