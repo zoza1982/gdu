@@ -44,31 +44,36 @@ type UI interface {
 
 // Flags define flags accepted by Run
 type Flags struct {
-	CfgFile            string   `yaml:"-"`
-	LogFile            string   `yaml:"log-file"`
-	InputFile          string   `yaml:"input-file"`
-	OutputFile         string   `yaml:"output-file"`
-	IgnoreDirs         []string `yaml:"ignore-dirs"`
-	IgnoreDirPatterns  []string `yaml:"ignore-dir-patterns"`
-	IgnoreFromFile     string   `yaml:"ignore-from-file"`
-	MaxCores           int      `yaml:"max-cores"`
-	SequentialScanning bool     `yaml:"sequential-scanning"`
-	ShowDisks          bool     `yaml:"-"`
-	ShowApparentSize   bool     `yaml:"show-apparent-size"`
-	ShowRelativeSize   bool     `yaml:"show-relative-size"`
-	ShowAnnexedSize    bool     `yaml:"show-annexed-size"`
-	ShowVersion        bool     `yaml:"-"`
-	ShowItemCount      bool     `yaml:"show-item-count"`
-	ShowMTime          bool     `yaml:"show-mtime"`
-	NoColor            bool     `yaml:"no-color"`
-	Mouse              bool     `yaml:"mouse"`
-	NonInteractive     bool     `yaml:"non-interactive"`
-	NoProgress         bool     `yaml:"no-progress"`
-	NoUnicode          bool     `yaml:"no-unicode"`
-	NoCross            bool     `yaml:"no-cross"`
-	NoHidden           bool     `yaml:"no-hidden"`
-	NoDelete           bool     `yaml:"no-delete"`
-	FollowSymlinks     bool     `yaml:"follow-symlinks"`
+	Style              Style         `yaml:"style"`
+	Sorting            Sorting       `yaml:"sorting"`
+	CfgFile            string        `yaml:"-"`
+	LogFile            string        `yaml:"log-file"`
+	InputFile          string        `yaml:"input-file"`
+	OutputFile         string        `yaml:"output-file"`
+	IgnoreFromFile     string        `yaml:"ignore-from-file"`
+	StoragePath        string        `yaml:"storage-path"`
+	IgnoreDirs         []string      `yaml:"ignore-dirs"`
+	IgnoreDirPatterns  []string      `yaml:"ignore-dir-patterns"`
+	MaxCores           int           `yaml:"max-cores"`
+	Top                int           `yaml:"top"`
+	SequentialScanning bool          `yaml:"sequential-scanning"`
+	ShowDisks          bool          `yaml:"-"`
+	ShowApparentSize   bool          `yaml:"show-apparent-size"`
+	ShowRelativeSize   bool          `yaml:"show-relative-size"`
+	ShowAnnexedSize    bool          `yaml:"show-annexed-size"`
+	ShowVersion        bool          `yaml:"-"`
+	ShowItemCount      bool          `yaml:"show-item-count"`
+	ShowMTime          bool          `yaml:"show-mtime"`
+	NoColor            bool          `yaml:"no-color"`
+	Mouse              bool          `yaml:"mouse"`
+	NonInteractive     bool          `yaml:"non-interactive"`
+	NoProgress         bool          `yaml:"no-progress"`
+	NoUnicode          bool          `yaml:"no-unicode"`
+	NoCross            bool          `yaml:"no-cross"`
+	NoHidden           bool          `yaml:"no-hidden"`
+	NoDelete           bool          `yaml:"no-delete"`
+	NoSpawnShell       bool          `yaml:"no-spawn-shell"`
+	FollowSymlinks     bool          `yaml:"follow-symlinks"`
 	Profiling          bool          `yaml:"profiling"`
 	ConstGC            bool          `yaml:"const-gc"`
 	UseStorage         bool          `yaml:"use-storage"`
@@ -81,16 +86,13 @@ type Flags struct {
 	MaxIOPS            int           `yaml:"max-iops"`
 	IODelay            time.Duration `yaml:"io-delay"`
 	Summarize          bool          `yaml:"summarize"`
-	Top                int      `yaml:"top"`
-	UseSIPrefix        bool     `yaml:"use-si-prefix"`
-	NoPrefix           bool     `yaml:"no-prefix"`
-	WriteConfig        bool     `yaml:"-"`
-	ReverseSort        bool     `yaml:"reverse-sort"`
-	ChangeCwd          bool     `yaml:"change-cwd"`
-	DeleteInBackground bool     `yaml:"delete-in-background"`
-	DeleteInParallel   bool     `yaml:"delete-in-parallel"`
-	Style              Style    `yaml:"style"`
-	Sorting            Sorting  `yaml:"sorting"`
+	UseSIPrefix        bool          `yaml:"use-si-prefix"`
+	NoPrefix           bool          `yaml:"no-prefix"`
+	WriteConfig        bool          `yaml:"-"`
+	ReverseSort        bool          `yaml:"reverse-sort"`
+	ChangeCwd          bool          `yaml:"change-cwd"`
+	DeleteInBackground bool          `yaml:"delete-in-background"`
+	DeleteInParallel   bool          `yaml:"delete-in-parallel"`
 }
 
 // ShouldRunInNonInteractiveMode checks if the application should run in non-interactive mode

@@ -388,7 +388,7 @@ func TestIOThrottle_ConcurrentReset(t *testing.T) {
 
 // BenchmarkIOThrottle_NoThrottle measures baseline performance (nil throttle)
 func BenchmarkIOThrottle_NoThrottle(b *testing.B) {
-	var throttle *IOThrottle = nil
+	var throttle *IOThrottle
 	ctx := context.Background()
 
 	b.ResetTimer()
