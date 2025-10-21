@@ -162,7 +162,7 @@ func (s *IncrementalStorage) checkCount() {
 			s.m.RLock()
 			defer s.m.RUnlock()
 			if s.db != nil {
-				_ = s.db.RunValueLogGC(0.5) // Ignore GC errors in background task
+				s.db.RunValueLogGC(0.5) //nolint:errcheck // GC errors in background task are not critical
 			}
 		}()
 	}
