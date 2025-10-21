@@ -69,10 +69,9 @@ type Flags struct {
 	NoHidden           bool     `yaml:"no-hidden"`
 	NoDelete           bool     `yaml:"no-delete"`
 	FollowSymlinks     bool     `yaml:"follow-symlinks"`
-	Profiling          bool     `yaml:"profiling"`
+	Profiling          bool          `yaml:"profiling"`
 	ConstGC            bool          `yaml:"const-gc"`
 	UseStorage         bool          `yaml:"use-storage"`
-	StoragePath        string        `yaml:"storage-path"`
 	ReadFromStorage    bool          `yaml:"read-from-storage"`
 	UseIncremental     bool          `yaml:"use-incremental"`
 	IncrementalPath    string        `yaml:"incremental-path"`
