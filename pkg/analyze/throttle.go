@@ -16,15 +16,15 @@ import (
 // adds a fixed delay between operations. The design supports two throttling modes:
 //
 // 1. IOPS Limiting (--max-iops):
-//    - Uses token bucket algorithm via rate.Limiter
-//    - Limits directory scans to N operations per second
-//    - Thread-safe across multiple goroutines (rate.Limiter handles synchronization)
-//    - Burst allowance = maxIOPS (allows short bursts up to the limit)
+//   - Uses token bucket algorithm via rate.Limiter
+//   - Limits directory scans to N operations per second
+//   - Thread-safe across multiple goroutines (rate.Limiter handles synchronization)
+//   - Burst allowance = maxIOPS (allows short bursts up to the limit)
 //
 // 2. Fixed Delay (--io-delay):
-//    - Adds constant delay between each operation
-//    - Simpler but less flexible than IOPS limiting
-//    - Can be combined with IOPS limiting for maximum protection
+//   - Adds constant delay between each operation
+//   - Simpler but less flexible than IOPS limiting
+//   - Can be combined with IOPS limiting for maximum protection
 //
 // Integration Points:
 // -------------------
@@ -44,10 +44,10 @@ import (
 // - Allows graceful shutdown during throttled operations
 // - Returns context.Err() if cancelled
 type IOThrottle struct {
-	maxIOPS int              // Maximum I/O operations per second (0 = unlimited)
-	ioDelay time.Duration    // Fixed delay between operations (0 = no delay)
-	limiter *rate.Limiter    // Token bucket rate limiter (nil if maxIOPS=0)
-	mu      sync.Mutex       // Protects limiter recreation in Reset()
+	maxIOPS int           // Maximum I/O operations per second (0 = unlimited)
+	ioDelay time.Duration // Fixed delay between operations (0 = no delay)
+	limiter *rate.Limiter // Token bucket rate limiter (nil if maxIOPS=0)
+	mu      sync.Mutex    // Protects limiter recreation in Reset()
 }
 
 // NewIOThrottle creates a throttle with IOPS limit and/or fixed delay.
@@ -65,10 +65,11 @@ type IOThrottle struct {
 //   - Token bucket refills at maxIOPS rate
 //
 // Example Usage:
-//   throttle := NewIOThrottle(1000, 10*time.Millisecond)  // 1000 IOPS + 10ms delay
-//   throttle := NewIOThrottle(500, 0)                      // 500 IOPS only
-//   throttle := NewIOThrottle(0, 20*time.Millisecond)      // 20ms delay only
-//   throttle := NewIOThrottle(0, 0)                        // returns nil (no throttling)
+//
+//	throttle := NewIOThrottle(1000, 10*time.Millisecond)  // 1000 IOPS + 10ms delay
+//	throttle := NewIOThrottle(500, 0)                      // 500 IOPS only
+//	throttle := NewIOThrottle(0, 20*time.Millisecond)      // 20ms delay only
+//	throttle := NewIOThrottle(0, 0)                        // returns nil (no throttling)
 func NewIOThrottle(maxIOPS int, ioDelay time.Duration) *IOThrottle {
 	// No throttling if both parameters are zero/disabled
 	if maxIOPS <= 0 && ioDelay <= 0 {
@@ -189,9 +190,10 @@ func (t *IOThrottle) Reset() {
 // Used for logging/diagnostics and conditional behavior.
 //
 // Example:
-//   if throttle != nil && throttle.IsEnabled() {
-//       log.Infof("Throttling enabled: %d IOPS, %v delay", ...)
-//   }
+//
+//	if throttle != nil && throttle.IsEnabled() {
+//	    log.Infof("Throttling enabled: %d IOPS, %v delay", ...)
+//	}
 func (t *IOThrottle) IsEnabled() bool {
 	if t == nil {
 		return false
