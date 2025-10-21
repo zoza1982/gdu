@@ -6,3 +6,21 @@
 /tui/test_dir
 /vendor
 gdu
+
+# Test artifacts and reports
+COMPREHENSIVE_QA_REPORT.md
+PHASE1_FINAL_TEST_REPORT.md
+PHASE1_RETEST_REPORT.md
+coverage.out
+coverage/
+test_output.log
+*.log
+
+# Test scripts
+test_unit.sh
+test_live.sh
+monitor_gdu_memory.sh
+
+# Temporary files
+gdu-source.tar.gz
+pkg/analyze/test_dir/
