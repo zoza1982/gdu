@@ -36,6 +36,7 @@ Item under cursor:
                [::b]v     [white:black:-]Show content of file
                [::b]o     [white:black:-]Open file or directory in external program
                [::b]i     [white:black:-]Show info about item
+               [::b]S     [white:black:-]Show cache statistics (incremental mode only)
 
 Sort by (twice toggles asc/desc):
                [::b]n     [white:black:-]Sort by name (asc/desc)
