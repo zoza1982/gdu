@@ -40,17 +40,23 @@ Or you can use Gdu directly via Docker:
   gdu [directory_to_scan] [flags]
 
 Flags:
+      --cache-max-age duration        Maximum age for cache entries before forcing rescan (e.g. 24h, 7d)
       --config-file string            Read config from file (default is $HOME/.gdu.yaml)
   -g, --const-gc                      Enable memory garbage collection during analysis with constant level set by GOGC
       --enable-profiling              Enable collection of profiling data and provide it on http://localhost:6060/debug/pprof/
   -L, --follow-symlinks               Follow symlinks for files, i.e. show the size of the file to which symlink points to (symlinks to directories are not followed)
+      --force-full-scan               Force full scan of all directories, ignoring cache
   -h, --help                          help for gdu
   -i, --ignore-dirs strings           Paths to ignore (separated by comma). Can be absolute or relative to current directory (default [/proc,/dev,/sys,/run])
   -I, --ignore-dirs-pattern strings   Path patterns to ignore (separated by comma)
   -X, --ignore-from string            Read path patterns to ignore from file
+      --incremental                   Enable incremental caching for faster rescans
+      --incremental-path string       Path to incremental cache storage (default "~/.cache/gdu/incremental/")
   -f, --input-file string             Import analysis from JSON file
+      --io-delay duration             Delay between directory scans for I/O throttling (e.g. 10ms, 100ms)
   -l, --log-file string               Path to a logfile (default "/dev/null")
   -m, --max-cores int                 Set max cores that Gdu will use. 12 cores available (default 12)
+      --max-iops int                  Limit I/O operations per second for storage-friendly scanning
       --mouse                         Use mouse
   -c, --no-color                      Do not use colorized output
   -x, --no-cross                      Do not cross filesystem boundaries
@@ -66,6 +72,7 @@ Flags:
       --sequential                    Use sequential scanning (intended for rotating HDDs)
   -A, --show-annexed-size             Use apparent size of git-annex'ed files in case files are not present locally (real usage is zero)
   -a, --show-apparent-size            Show apparent size
+      --show-cache-stats              Display cache statistics (hit rate, I/O reduction, etc.)
   -d, --show-disks                    Show all mounted disks
   -C, --show-item-count               Show number of items in directory
   -M, --show-mtime                    Show latest mtime of items in directory
@@ -88,6 +95,7 @@ Basic list of actions in interactive mode (show help modal for more):
   n                                   Sort by name
   s                                   Sort by size
   c                                   Show number of items in directory
+  S                                   Show cache statistics (incremental mode)
   ?                                   Show help modal
 ```
 
