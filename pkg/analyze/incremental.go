@@ -187,7 +187,14 @@ func (a *IncrementalAnalyzer) processDir(path string) *Dir {
 	// Step 1: Get current filesystem state
 	stat, err := os.Stat(path)
 	if err != nil {
-		log.Printf("Error stating directory %s: %v", path, err)
+		// Handle path errors with specific logging
+		if os.IsNotExist(err) {
+			log.Printf("Directory not found: %s", path)
+		} else if os.IsPermission(err) {
+			log.Printf("Permission denied for directory: %s", path)
+		} else {
+			log.Printf("Error stating directory %s: %v", path, err)
+		}
 		return a.createErrorDir(path, err)
 	}
 	currentMtime := stat.ModTime()
@@ -201,10 +208,8 @@ func (a *IncrementalAnalyzer) processDir(path string) *Dir {
 	// Step 3: Try to load from cache
 	cached, err := a.storage.LoadDirMetadata(path)
 	if err != nil {
-		// Cache miss - new directory or cache error
-		a.stats.IncrementCacheMisses()
-		a.stats.IncrementTotalDirs()
-		return a.scanAndCache(path, currentMtime)
+		// Cache miss or error - use fallback handler
+		return a.handleCacheError(path, currentMtime, err)
 	}
 
 	// Step 4: Validate cache age if max age is set
@@ -501,6 +506,55 @@ func (a *IncrementalAnalyzer) rebuildFromCache(cached *IncrementalDirMetadata) *
 	}
 
 	return dir
+}
+
+// handleCacheError handles cache read errors by falling back to full scan
+func (a *IncrementalAnalyzer) handleCacheError(path string, currentMtime time.Time, err error) *Dir {
+	// Distinguish between cache miss and actual errors
+	if err.Error() == "Key not found" || err.Error() == "reading cached metadata for path: "+path+": Key not found" {
+		// Normal cache miss - just log at debug level
+		log.Debugf("Cache miss for %s: not in cache", path)
+	} else {
+		// Actual cache error - log as warning
+		log.Printf("Warning: Cache error for %s: %v, falling back to full scan", path, err)
+	}
+
+	a.stats.IncrementCacheMisses()
+	a.stats.IncrementTotalDirs()
+
+	// Perform full scan as fallback
+	return a.scanAndCache(path, currentMtime)
+}
+
+// validateCachedPath checks if a cached directory path still exists on the filesystem
+// Returns true if the path exists and is accessible, false otherwise
+func (a *IncrementalAnalyzer) validateCachedPath(path string) bool {
+	stat, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Path deleted - clean up cache entry
+			log.Printf("Cached path no longer exists: %s, removing from cache", path)
+			if cleanupErr := a.storage.DeleteDirMetadata(path); cleanupErr != nil {
+				log.Printf("Warning: Failed to clean up deleted path %s from cache: %v", path, cleanupErr)
+			}
+			return false
+		}
+		if os.IsPermission(err) {
+			log.Printf("Permission denied for cached path: %s", path)
+			return false
+		}
+		// Other errors - assume path is problematic
+		log.Printf("Error validating cached path %s: %v", path, err)
+		return false
+	}
+
+	// Verify it's still a directory
+	if !stat.IsDir() {
+		log.Printf("Warning: Cached directory path %s is no longer a directory", path)
+		return false
+	}
+
+	return true
 }
 
 // updateProgress sends progress updates to the progress channel

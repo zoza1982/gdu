@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -70,19 +72,62 @@ func (s *IncrementalStorage) IsOpen() bool {
 	return s.db != nil
 }
 
-// Open opens the BadgerDB database
+// Open opens the BadgerDB database with detailed error handling
 func (s *IncrementalStorage) Open() (func(), error) {
 	options := badger.DefaultOptions(s.storagePath)
 	options.Logger = nil
+
 	db, err := badger.Open(options)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to open incremental cache database")
+		// Provide specific error messages for common issues
+		errMsg := err.Error()
+
+		// Permission denied
+		if os.IsPermission(err) {
+			return nil, fmt.Errorf("permission denied opening cache at %s: %w", s.storagePath, err)
+		}
+
+		// Disk space issues
+		if strings.Contains(errMsg, "no space left") || strings.Contains(errMsg, "disk full") {
+			return nil, fmt.Errorf("insufficient disk space for cache at %s: %w", s.storagePath, err)
+		}
+
+		// Database corruption or version mismatch
+		if strings.Contains(errMsg, "corrupted") ||
+			strings.Contains(errMsg, "invalid") ||
+			strings.Contains(errMsg, "checksum") ||
+			strings.Contains(errMsg, "manifest") {
+			return nil, fmt.Errorf("cache database corrupted at %s (try deleting it with: rm -rf %s): %w",
+				s.storagePath, s.storagePath, err)
+		}
+
+		// Concurrent access (another process using the database)
+		if strings.Contains(errMsg, "Another process is using this Badger database") ||
+			strings.Contains(errMsg, "Cannot acquire directory lock") ||
+			strings.Contains(errMsg, "resource temporarily unavailable") {
+			return nil, fmt.Errorf("cache database at %s is locked by another gdu process: %w",
+				s.storagePath, err)
+		}
+
+		// Directory doesn't exist
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("cache directory does not exist at %s (create it with: mkdir -p %s): %w",
+				s.storagePath, s.storagePath, err)
+		}
+
+		// Generic error with helpful context
+		return nil, fmt.Errorf("failed to open cache database at %s: %w", s.storagePath, err)
 	}
+
 	s.db = db
 
 	return func() {
-		s.db.Close()
-		s.db = nil
+		s.m.Lock()
+		defer s.m.Unlock()
+		if s.db != nil {
+			s.db.Close()
+			s.db = nil
+		}
 	}, nil
 }
 
@@ -91,6 +136,10 @@ func (s *IncrementalStorage) StoreDirMetadata(meta *IncrementalDirMetadata) erro
 	s.checkCount()
 	s.m.RLock()
 	defer s.m.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("storage is not open")
+	}
 
 	return s.db.Update(func(txn *badger.Txn) error {
 		b := &bytes.Buffer{}
@@ -105,11 +154,15 @@ func (s *IncrementalStorage) StoreDirMetadata(meta *IncrementalDirMetadata) erro
 	})
 }
 
-// LoadDirMetadata loads directory metadata from cache
+// LoadDirMetadata loads directory metadata from cache with error handling
 func (s *IncrementalStorage) LoadDirMetadata(path string) (*IncrementalDirMetadata, error) {
 	s.checkCount()
 	s.m.RLock()
 	defer s.m.RUnlock()
+
+	if s.db == nil {
+		return nil, fmt.Errorf("storage is not open")
+	}
 
 	var meta IncrementalDirMetadata
 
@@ -123,12 +176,22 @@ func (s *IncrementalStorage) LoadDirMetadata(path string) (*IncrementalDirMetada
 		return item.Value(func(val []byte) error {
 			b := bytes.NewBuffer(val)
 			dec := gob.NewDecoder(b)
-			return dec.Decode(&meta)
+			decodeErr := dec.Decode(&meta)
+			if decodeErr != nil {
+				// Corrupted cache entry - wrap with context
+				return fmt.Errorf("corrupted cache entry for %s (will rescan): %w", path, decodeErr)
+			}
+			return nil
 		})
 	})
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Validate the loaded metadata
+	if meta.Path == "" {
+		return nil, fmt.Errorf("invalid cache entry for %s: empty path", path)
 	}
 
 	return &meta, nil
@@ -138,6 +201,10 @@ func (s *IncrementalStorage) LoadDirMetadata(path string) (*IncrementalDirMetada
 func (s *IncrementalStorage) DeleteDirMetadata(path string) error {
 	s.m.RLock()
 	defer s.m.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("storage is not open")
+	}
 
 	return s.db.Update(func(txn *badger.Txn) error {
 		key := s.makeKey(path)
