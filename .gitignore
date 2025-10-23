@@ -24,3 +24,6 @@ monitor_gdu_memory.sh
 # Temporary files
 gdu-source.tar.gz
 pkg/analyze/test_dir/
+
+# PR draft and working documents
+PR.md
