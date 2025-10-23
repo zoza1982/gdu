@@ -255,16 +255,16 @@ If resources are limited, a **single experienced Go engineer** can complete the 
 
 #### Tasks Breakdown
 
-| Task | Description | Est. (days) | Owner | Status |
-|------|-------------|-------------|-------|--------|
-| 2.1 | Design throttling architecture (token bucket) | 0.5 | TBD | Not Started |
-| 2.2 | Implement `IOThrottle` struct using golang.org/x/time/rate | 1.0 | TBD | Not Started |
-| 2.3 | Integrate throttling into `processDir()` | 0.5 | TBD | Not Started |
-| 2.4 | Add `--max-iops` flag support | 0.5 | TBD | Not Started |
-| 2.5 | Add `--io-delay` flag support | 0.5 | TBD | Not Started |
-| 2.6 | Write unit tests for throttling | 1.0 | TBD | Not Started |
-| 2.7 | Benchmark performance impact of throttling | 1.0 | TBD | Not Started |
-| 2.8 | Test with parallel and sequential analyzers | 0.5 | TBD | Not Started |
+| Task | Description | Est. (days) | Owner | Status | Completion Date | Notes |
+|------|-------------|-------------|-------|--------|----------------|-------|
+| 2.1 | Design throttling architecture (token bucket) | 0.5 | PM (AI Agent) | Complete | 2025-10-02 | ✅ Token bucket design documented in throttle.go comments |
+| 2.2 | Implement `IOThrottle` struct using golang.org/x/time/rate | 1.0 | PM (AI Agent) | Complete | 2025-10-02 | ✅ Full implementation with IOPS + delay support, thread-safe |
+| 2.3 | Integrate throttling into `processDir()` | 0.5 | PM (AI Agent) | Complete | 2025-10-02 | ✅ Throttle integrated in performFullScan, added to struct and options |
+| 2.4 | Add `--max-iops` flag support | 0.5 | PM (AI Agent) | Complete | 2025-10-02 | ✅ Flag added to Flags struct, main.go, and wired to analyzer |
+| 2.5 | Add `--io-delay` flag support | 0.5 | PM (AI Agent) | Complete | 2025-10-02 | ✅ Flag added to Flags struct, main.go, and wired to analyzer |
+| 2.6 | Write unit tests for throttling | 1.0 | TBD | Not Started | | |
+| 2.7 | Benchmark performance impact of throttling | 1.0 | TBD | Not Started | | |
+| 2.8 | Test with parallel and sequential analyzers | 0.5 | TBD | Not Started | | |
 
 **Total Estimated Effort**: 5.5 days
 

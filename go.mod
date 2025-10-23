@@ -1,6 +1,6 @@
 module github.com/dundee/gdu/v5
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/dgraph-io/badger/v3 v3.2103.2
@@ -19,6 +19,7 @@ require (
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
 	golang.org/x/sys v0.35.0
 	golang.org/x/text v0.28.0
+	golang.org/x/time v0.13.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

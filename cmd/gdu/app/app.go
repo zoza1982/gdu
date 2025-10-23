@@ -79,6 +79,8 @@ type Flags struct {
 	CacheMaxAge        time.Duration `yaml:"cache-max-age"`
 	ForceFullScan      bool          `yaml:"force-full-scan"`
 	ShowCacheStats     bool          `yaml:"show-cache-stats"`
+	MaxIOPS            int           `yaml:"max-iops"`
+	IODelay            time.Duration `yaml:"io-delay"`
 	Summarize          bool          `yaml:"summarize"`
 	Top                int      `yaml:"top"`
 	UseSIPrefix        bool     `yaml:"use-si-prefix"`
@@ -218,6 +220,8 @@ func (a *App) Run() error {
 			StoragePath:   storagePath,
 			CacheMaxAge:   a.Flags.CacheMaxAge,
 			ForceFullScan: a.Flags.ForceFullScan,
+			MaxIOPS:       a.Flags.MaxIOPS,
+			IODelay:       a.Flags.IODelay,
 		})
 		ui.SetAnalyzer(analyzer)
 	}
@@ -315,6 +319,7 @@ func (a *App) createUI() (UI, error) {
 			a.Flags.NoPrefix,
 			a.Flags.Top,
 			a.Flags.ReverseSort,
+			a.Flags.ShowCacheStats,
 		)
 		if a.Flags.NoUnicode {
 			stdoutUI.UseOldProgressRunes()
