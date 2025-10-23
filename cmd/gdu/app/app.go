@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -69,11 +70,16 @@ type Flags struct {
 	NoDelete           bool     `yaml:"no-delete"`
 	FollowSymlinks     bool     `yaml:"follow-symlinks"`
 	Profiling          bool     `yaml:"profiling"`
-	ConstGC            bool     `yaml:"const-gc"`
-	UseStorage         bool     `yaml:"use-storage"`
-	StoragePath        string   `yaml:"storage-path"`
-	ReadFromStorage    bool     `yaml:"read-from-storage"`
-	Summarize          bool     `yaml:"summarize"`
+	ConstGC            bool          `yaml:"const-gc"`
+	UseStorage         bool          `yaml:"use-storage"`
+	StoragePath        string        `yaml:"storage-path"`
+	ReadFromStorage    bool          `yaml:"read-from-storage"`
+	UseIncremental     bool          `yaml:"use-incremental"`
+	IncrementalPath    string        `yaml:"incremental-path"`
+	CacheMaxAge        time.Duration `yaml:"cache-max-age"`
+	ForceFullScan      bool          `yaml:"force-full-scan"`
+	ShowCacheStats     bool          `yaml:"show-cache-stats"`
+	Summarize          bool          `yaml:"summarize"`
 	Top                int      `yaml:"top"`
 	UseSIPrefix        bool     `yaml:"use-si-prefix"`
 	NoPrefix           bool     `yaml:"no-prefix"`
@@ -179,6 +185,10 @@ func (a *App) Run() error {
 		return fmt.Errorf("--no-prefix and --si cannot be used at once")
 	}
 
+	if a.Flags.UseStorage && a.Flags.UseIncremental {
+		return fmt.Errorf("--use-storage and --incremental cannot be used at once")
+	}
+
 	path := a.getPath()
 	path, err := filepath.Abs(path)
 	if err != nil {
@@ -192,6 +202,24 @@ func (a *App) Run() error {
 
 	if a.Flags.UseStorage {
 		ui.SetAnalyzer(analyze.CreateStoredAnalyzer(a.Flags.StoragePath))
+	}
+	if a.Flags.UseIncremental {
+		storagePath := a.Flags.IncrementalPath
+		if storagePath == "" {
+			// Default to ~/.cache/gdu/incremental
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("failed to get user home directory: %w", err)
+			}
+			storagePath = filepath.Join(homeDir, ".cache", "gdu", "incremental")
+		}
+
+		analyzer := analyze.CreateIncrementalAnalyzer(analyze.IncrementalOptions{
+			StoragePath:   storagePath,
+			CacheMaxAge:   a.Flags.CacheMaxAge,
+			ForceFullScan: a.Flags.ForceFullScan,
+		})
+		ui.SetAnalyzer(analyzer)
 	}
 	if a.Flags.SequentialScanning {
 		ui.SetAnalyzer(analyze.CreateSeqAnalyzer())

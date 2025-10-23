@@ -71,6 +71,12 @@ func init() {
 	flags.StringVar(&af.StoragePath, "storage-path", "/tmp/badger", "Path to persistent key-value storage directory")
 	flags.BoolVarP(&af.ReadFromStorage, "read-from-storage", "r", false, "Read analysis data from persistent key-value storage")
 
+	flags.BoolVar(&af.UseIncremental, "incremental", false, "Enable incremental caching to reduce I/O on subsequent scans")
+	flags.StringVar(&af.IncrementalPath, "incremental-path", "", "Path to incremental cache directory (default: $HOME/.cache/gdu/incremental)")
+	flags.DurationVar(&af.CacheMaxAge, "cache-max-age", 0, "Maximum age of cache entries before refresh (e.g., 24h, 7d). 0 means no expiry")
+	flags.BoolVar(&af.ForceFullScan, "force-full-scan", false, "Ignore cache and perform full scan (updates cache)")
+	flags.BoolVar(&af.ShowCacheStats, "show-cache-stats", false, "Display cache statistics after scan")
+
 	flags.BoolVarP(&af.ShowDisks, "show-disks", "d", false, "Show all mounted disks")
 	flags.BoolVarP(&af.ShowApparentSize, "show-apparent-size", "a", false, "Show apparent size")
 	flags.BoolVarP(&af.ShowRelativeSize, "show-relative-size", "B", false, "Show relative size")
