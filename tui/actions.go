@@ -73,9 +73,18 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 		currentDir := ui.Analyzer.AnalyzeDir(path, ui.CreateIgnoreFunc(), ui.ConstGC)
 
 		if parentDir != nil {
-			currentDir.SetParent(parentDir)
-			parentDir.SetFiles(parentDir.GetFiles().RemoveByName(currentDir.GetName()))
-			parentDir.AddFile(currentDir)
+			// Check if parentDir is a ParentDir marker - if so, we can't call methods on it
+			if _, isParentDirMarker := parentDir.(*analyze.ParentDir); isParentDirMarker {
+				// ParentDir is just a marker, we can't use it as a real parent
+				// Treat this as a new top directory
+				ui.topDirPath = path
+				ui.topDir = currentDir
+			} else {
+				// Real parent directory - link them together
+				currentDir.SetParent(parentDir)
+				parentDir.SetFiles(parentDir.GetFiles().RemoveByName(currentDir.GetName()))
+				parentDir.AddFile(currentDir)
+			}
 		} else {
 			ui.topDirPath = path
 			ui.topDir = currentDir
@@ -307,6 +316,104 @@ func (ui *UI) showInfo() {
 		AddItem(nil, 0, 1, false)
 
 	ui.pages.AddPage("info", flex, true, true)
+}
+
+func (ui *UI) showCacheStats() {
+	// Check if we're using incremental analyzer
+	incrementalAnalyzer, ok := ui.Analyzer.(*analyze.IncrementalAnalyzer)
+	if !ok {
+		// Not using incremental mode, show message
+		text := tview.NewTextView().SetDynamicColors(true)
+		text.SetBorder(true).SetBorderPadding(2, 2, 2, 2)
+		text.SetBorderColor(tcell.ColorDefault)
+		text.SetTitle(" Cache Statistics ")
+		text.SetText("\n[yellow]Cache statistics are only available when using --incremental mode[-]\n\nRun gdu with --incremental flag to enable incremental caching.")
+
+		flex := tview.NewFlex().
+			AddItem(nil, 0, 1, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+				AddItem(nil, 0, 1, false).
+				AddItem(text, 10, 1, false).
+				AddItem(nil, 0, 1, false), 80, 1, false).
+			AddItem(nil, 0, 1, false)
+
+		ui.pages.AddPage("cache-stats", flex, true, true)
+		return
+	}
+
+	stats := incrementalAnalyzer.GetCacheStats()
+	if stats == nil {
+		return
+	}
+
+	var content, numberColor string
+	if ui.UseColors {
+		numberColor = fmt.Sprintf(
+			"[%s::b]",
+			ui.resultRow.NumberColor,
+		)
+	} else {
+		numberColor = defaultColorBold
+	}
+
+	text := tview.NewTextView().SetDynamicColors(true)
+	text.SetBorder(true).SetBorderPadding(2, 2, 2, 2)
+	text.SetBorderColor(tcell.ColorDefault)
+	text.SetTitle(" Cache Statistics ")
+
+	// Build content
+	content += "[::b]Cache Performance:[::-]\n\n"
+
+	// Hit rate
+	hitRate := stats.HitRate()
+	content += "        [::b]Hit Rate:[::-] " + numberColor
+	content += fmt.Sprintf("%.1f%%[-::] (%s%d[-::] hits, %s%d[-::] misses)\n",
+		hitRate, numberColor, stats.CacheHits, numberColor, stats.CacheMisses)
+
+	// I/O reduction
+	ioReduction := stats.IOReduction()
+	content += "   [::b]I/O Reduction:[::-] " + numberColor
+	content += fmt.Sprintf("%.1f%%[-::]\n\n", ioReduction)
+
+	// Directory stats
+	content += "[::b]Directory Statistics:[::-]\n\n"
+	content += "   [::b]Total Directories:[::-] " + numberColor
+	content += fmt.Sprintf("%d[-::]\n", stats.TotalDirs)
+	content += "  [::b]Directories Rescanned:[::-] " + numberColor
+	content += fmt.Sprintf("%d[-::]\n", stats.DirsRescanned)
+	if stats.CacheExpired > 0 {
+		content += "      [::b]Cache Expired:[::-] " + numberColor
+		content += fmt.Sprintf("%d[-::]\n", stats.CacheExpired)
+	}
+
+	// Data stats
+	if stats.BytesScanned > 0 || stats.BytesFromCache > 0 {
+		content += "\n[::b]Data Transfer:[::-]\n\n"
+		content += "    [::b]Bytes Scanned:[::-] " + numberColor
+		content += ui.formatSize(stats.BytesScanned, false, true) + "[-::]\n"
+		content += " [::b]Bytes From Cache:[::-] " + numberColor
+		content += ui.formatSize(stats.BytesFromCache, false, true) + "[-::]\n"
+	}
+
+	// Performance stats
+	if stats.TotalScanTime > 0 {
+		content += "\n[::b]Performance:[::-]\n\n"
+		content += "       [::b]Scan Time:[::-] " + numberColor
+		content += fmt.Sprintf("%v[-::]\n", stats.TotalScanTime)
+	}
+
+	text.SetText(content)
+
+	linesCount := 20
+	flex := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(text, linesCount, 1, false).
+			AddItem(nil, 0, 1, false), 80, 1, false).
+		AddItem(nil, 0, 1, false)
+
+	ui.pages.AddPage("cache-stats", flex, true, true)
 }
 
 func (ui *UI) openItem() {

@@ -37,12 +37,12 @@ func TestIOThrottle_Disabled(t *testing.T) {
 // TestIOThrottle_IOPSLimit tests IOPS rate limiting accuracy
 func TestIOThrottle_IOPSLimit(t *testing.T) {
 	tests := []struct {
-		name         string
-		maxIOPS      int
-		numOps       int
-		expectedMin  time.Duration
-		expectedMax  time.Duration
-		description  string
+		name        string
+		maxIOPS     int
+		numOps      int
+		expectedMin time.Duration
+		expectedMax time.Duration
+		description string
 	}{
 		{
 			name:        "100 IOPS burst allowed",
@@ -55,7 +55,7 @@ func TestIOThrottle_IOPSLimit(t *testing.T) {
 		{
 			name:        "100 IOPS rate limiting",
 			maxIOPS:     100,
-			numOps:      150, // Beyond burst, will rate limit
+			numOps:      150,                    // Beyond burst, will rate limit
 			expectedMin: 400 * time.Millisecond, // 50 extra ops at 100/sec = 500ms, minus overhead
 			expectedMax: 800 * time.Millisecond,
 			description: "Should rate limit after consuming burst",
@@ -63,7 +63,7 @@ func TestIOThrottle_IOPSLimit(t *testing.T) {
 		{
 			name:        "1000 IOPS rate limiting",
 			maxIOPS:     1000,
-			numOps:      1100, // 100 extra ops
+			numOps:      1100,                  // 100 extra ops
 			expectedMin: 50 * time.Millisecond, // 100 ops at 1000/sec = 100ms
 			expectedMax: 250 * time.Millisecond,
 			description: "Should rate limit at 1000 IOPS",
@@ -163,10 +163,10 @@ func TestIOThrottle_FixedDelay(t *testing.T) {
 // TestIOThrottle_Concurrent tests that multiple goroutines respect shared limit
 func TestIOThrottle_Concurrent(t *testing.T) {
 	const (
-		maxIOPS     = 100
-		numWorkers  = 10
+		maxIOPS      = 100
+		numWorkers   = 10
 		opsPerWorker = 20
-		totalOps    = numWorkers * opsPerWorker
+		totalOps     = numWorkers * opsPerWorker
 	)
 
 	throttle := NewIOThrottle(maxIOPS, 0)
@@ -388,7 +388,7 @@ func TestIOThrottle_ConcurrentReset(t *testing.T) {
 
 // BenchmarkIOThrottle_NoThrottle measures baseline performance (nil throttle)
 func BenchmarkIOThrottle_NoThrottle(b *testing.B) {
-	var throttle *IOThrottle = nil
+	var throttle *IOThrottle
 	ctx := context.Background()
 
 	b.ResetTimer()

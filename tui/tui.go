@@ -360,7 +360,38 @@ func (ui *UI) fileItemSelected(row, column int) {
 	}
 
 	selectedDir := selectedDirCell.GetReference().(fs.Item)
-	if selectedDir == nil || !selectedDir.IsDir() {
+	if selectedDir == nil {
+		return
+	}
+
+	// Special case: ParentDir (the ".." entry) is a marker object, not a real directory
+	// We need to detect if we're navigating to a parent via a ParentDir marker
+	// vs. navigating to an already-loaded parent directory
+
+	// Check if selectedDir is actually a ParentDir marker type
+	_, selectedIsParentDir := selectedDir.(*analyze.ParentDir)
+
+	if selectedIsParentDir {
+		// This is a ParentDir marker (used by IncrementalAnalyzer)
+		// We need to re-analyze the parent directory since it's not loaded in memory
+		parentPath := selectedDir.GetPath()
+
+		// When navigating to parent via ParentDir marker, we don't have the grandparent loaded
+		// So we pass nil as parentDir to AnalyzePath, which will make it the new top directory
+		// IMPORTANT: Reset progress channels before starting new analysis
+		// to avoid "close of closed channel" panic
+		ui.Analyzer.ResetProgress()
+		ui.linkedItems = make(fs.HardLinkedItems)
+
+		err := ui.AnalyzePath(parentPath, nil)
+		if err != nil {
+			ui.showErr("Error analyzing parent path", err)
+			return
+		}
+		return
+	}
+
+	if !selectedDir.IsDir() {
 		return
 	}
 
@@ -371,17 +402,26 @@ func (ui *UI) fileItemSelected(row, column int) {
 	ui.ignoredRows = make(map[int]struct{})
 	ui.showDir()
 
-	if origDir.GetParent() != nil && selectedDir.GetName() == origDir.GetParent().GetName() {
-		index := slices.IndexFunc(
-			ui.currentDir.GetFiles(),
-			func(v fs.Item) bool {
-				return v.GetName() == origDir.GetName()
-			},
-		)
-		if ui.currentDir.GetPath() != ui.topDir.GetPath() {
-			index++
+	// Try to restore cursor position when navigating back to a parent directory
+	// This helps user orientation by highlighting the directory they just came from
+	origParent := origDir.GetParent()
+	if origParent != nil {
+		// Check if origParent is a ParentDir - if so, skip this logic to avoid panic
+		if _, isParentDirType := origParent.(*analyze.ParentDir); !isParentDirType {
+			// Safe to call GetName() since it's not a ParentDir
+			if selectedDir.GetName() == origParent.GetName() {
+				index := slices.IndexFunc(
+					ui.currentDir.GetFiles(),
+					func(v fs.Item) bool {
+						return v.GetName() == origDir.GetName()
+					},
+				)
+				if ui.currentDir.GetPath() != ui.topDir.GetPath() {
+					index++
+				}
+				ui.table.Select(index, 0)
+			}
 		}
-		ui.table.Select(index, 0)
 	}
 }
 

@@ -165,9 +165,7 @@ For more help, see: https://github.com/dundee/gdu#incremental-caching
 			Files:     make(fs.Files, 0),
 		}
 	}
-	defer func() {
-		closeFn()
-	}()
+	defer closeFn()
 
 	a.ignoreDir = ignore
 
@@ -236,7 +234,7 @@ func (a *IncrementalAnalyzer) processDir(path string) *Dir {
 }
 
 // createErrorDir creates a directory entry for errors
-func (a *IncrementalAnalyzer) createErrorDir(path string, err error) *Dir {
+func (a *IncrementalAnalyzer) createErrorDir(path string, _ error) *Dir {
 	// Send progress update to prevent hanging
 	a.progressChan <- common.CurrentProgress{
 		CurrentItemName: path,
@@ -288,12 +286,12 @@ func (a *IncrementalAnalyzer) scanAndCache(path string, currentMtime time.Time) 
 // performFullScan performs an actual filesystem scan of a directory
 func (a *IncrementalAnalyzer) performFullScan(path string) *Dir {
 	var (
-		file      *File
-		err       error
-		totalSize int64
+		file       *File
+		err        error
+		totalSize  int64
 		totalUsage int64
-		itemCount int
-		info      os.FileInfo
+		itemCount  int
+		info       os.FileInfo
 	)
 
 	a.wait.Add(1)

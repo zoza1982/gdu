@@ -8,17 +8,17 @@ import (
 
 // CacheStats tracks statistics for incremental caching
 type CacheStats struct {
-	TotalDirs       int64
-	CacheHits       int64
-	CacheMisses     int64
-	CacheExpired    int64
-	DirsRescanned   int64
-	BytesFromCache  int64
-	BytesScanned    int64
-	ScanStartTime   time.Time
-	ScanEndTime     time.Time
-	TotalScanTime   time.Duration
-	CacheLoadTime   time.Duration
+	TotalDirs      int64
+	CacheHits      int64
+	CacheMisses    int64
+	CacheExpired   int64
+	DirsRescanned  int64
+	BytesFromCache int64
+	BytesScanned   int64
+	ScanStartTime  time.Time
+	ScanEndTime    time.Time
+	TotalScanTime  time.Duration
+	CacheLoadTime  time.Duration
 
 	mu sync.RWMutex
 }

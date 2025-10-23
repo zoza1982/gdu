@@ -18,15 +18,15 @@ func init() {
 
 // IncrementalDirMetadata contains cached directory metadata
 type IncrementalDirMetadata struct {
-	Path         string        // Full path to directory
-	Mtime        time.Time     // Directory modification time
-	Size         int64         // Total apparent size
-	Usage        int64         // Total disk usage
-	ItemCount    int           // Number of items in tree
-	Flag         rune          // Directory flag
+	Path         string         // Full path to directory
+	Mtime        time.Time      // Directory modification time
+	Size         int64          // Total apparent size
+	Usage        int64          // Total disk usage
+	ItemCount    int            // Number of items in tree
+	Flag         rune           // Directory flag
 	Files        []FileMetadata // Direct children metadata
-	CachedAt     time.Time     // When this was cached
-	ScanDuration time.Duration // How long the scan took
+	CachedAt     time.Time      // When this was cached
+	ScanDuration time.Duration  // How long the scan took
 }
 
 // FileMetadata contains metadata for a single file or directory
@@ -162,7 +162,7 @@ func (s *IncrementalStorage) checkCount() {
 			s.m.RLock()
 			defer s.m.RUnlock()
 			if s.db != nil {
-				s.db.RunValueLogGC(0.5)
+				s.db.RunValueLogGC(0.5) //nolint:errcheck // GC errors in background task are not critical
 			}
 		}()
 	}

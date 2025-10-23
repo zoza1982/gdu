@@ -82,6 +82,11 @@ func (ui *UI) handleClosingModals(key *tcell.EventKey) *tcell.EventKey {
 			ui.app.SetFocus(ui.table)
 			return nil
 		}
+		if ui.pages.HasPage("cache-stats") {
+			ui.pages.RemovePage("cache-stats")
+			ui.app.SetFocus(ui.table)
+			return nil
+		}
 	}
 	return key
 }
@@ -213,6 +218,8 @@ func (ui *UI) handleMainActions(key *tcell.EventKey) *tcell.EventKey {
 		ui.openItem()
 	case 'i':
 		ui.showInfo()
+	case 'S':
+		ui.showCacheStats()
 	case 'a':
 		ui.ShowApparentSize = !ui.ShowApparentSize
 		if ui.currentDir != nil {
