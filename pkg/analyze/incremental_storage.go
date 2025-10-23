@@ -122,8 +122,12 @@ func (s *IncrementalStorage) Open() (func(), error) {
 	s.db = db
 
 	return func() {
-		s.db.Close()
-		s.db = nil
+		s.m.Lock()
+		defer s.m.Unlock()
+		if s.db != nil {
+			s.db.Close()
+			s.db = nil
+		}
 	}, nil
 }
 
@@ -132,6 +136,10 @@ func (s *IncrementalStorage) StoreDirMetadata(meta *IncrementalDirMetadata) erro
 	s.checkCount()
 	s.m.RLock()
 	defer s.m.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("storage is not open")
+	}
 
 	return s.db.Update(func(txn *badger.Txn) error {
 		b := &bytes.Buffer{}
@@ -151,6 +159,10 @@ func (s *IncrementalStorage) LoadDirMetadata(path string) (*IncrementalDirMetada
 	s.checkCount()
 	s.m.RLock()
 	defer s.m.RUnlock()
+
+	if s.db == nil {
+		return nil, fmt.Errorf("storage is not open")
+	}
 
 	var meta IncrementalDirMetadata
 
@@ -189,6 +201,10 @@ func (s *IncrementalStorage) LoadDirMetadata(path string) (*IncrementalDirMetada
 func (s *IncrementalStorage) DeleteDirMetadata(path string) error {
 	s.m.RLock()
 	defer s.m.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("storage is not open")
+	}
 
 	return s.db.Update(func(txn *badger.Txn) error {
 		key := s.makeKey(path)

@@ -154,11 +154,19 @@ func TestRebuildFromCache_FallbackIncrementsStats(t *testing.T) {
 	analyzer1.AnalyzeDir(testRoot, func(_, _ string) bool { return false }, false)
 	analyzer1.GetDone().Wait()
 
+	// Create a separate storage instance to delete the cache entry
+	// This avoids calling DeleteDirMetadata on a closed database
+	storage := NewIncrementalStorage(tmpCache, testRoot)
+	cleanup, err := storage.Open()
+	assert.NoError(t, err)
+
 	// Manually delete the child's cache entry to force fallback
-	storage := analyzer1.storage
 	err = storage.DeleteDirMetadata(subDir)
 	assert.NoError(t, err)
 	t.Logf("Deleted cache entry for %s to force fallback", subDir)
+
+	// Close the storage before second scan
+	cleanup()
 
 	// Second scan - parent is in cache, child is not (will trigger fallback)
 	analyzer2 := CreateIncrementalAnalyzer(opts)
