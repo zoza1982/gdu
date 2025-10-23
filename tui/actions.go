@@ -73,9 +73,18 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 		currentDir := ui.Analyzer.AnalyzeDir(path, ui.CreateIgnoreFunc(), ui.ConstGC)
 
 		if parentDir != nil {
-			currentDir.SetParent(parentDir)
-			parentDir.SetFiles(parentDir.GetFiles().RemoveByName(currentDir.GetName()))
-			parentDir.AddFile(currentDir)
+			// Check if parentDir is a ParentDir marker - if so, we can't call methods on it
+			if _, isParentDirMarker := parentDir.(*analyze.ParentDir); isParentDirMarker {
+				// ParentDir is just a marker, we can't use it as a real parent
+				// Treat this as a new top directory
+				ui.topDirPath = path
+				ui.topDir = currentDir
+			} else {
+				// Real parent directory - link them together
+				currentDir.SetParent(parentDir)
+				parentDir.SetFiles(parentDir.GetFiles().RemoveByName(currentDir.GetName()))
+				parentDir.AddFile(currentDir)
+			}
 		} else {
 			ui.topDirPath = path
 			ui.topDir = currentDir
